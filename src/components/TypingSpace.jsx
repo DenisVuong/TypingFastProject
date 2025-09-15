@@ -1,0 +1,231 @@
+import React, { useEffect, useRef, useState } from 'react';
+import { Settings } from 'lucide-react';
+
+const TypingSpace = () => {
+
+    const [time, setTime] = useState(10); // Temps initial (60 secondes)
+    const [displayedText, setDisplayedText] = useState("The quick brown fox jumps over the lazy dog this pangram contains every letter of the alphabet and is commonly used for typing practice. It helps improve finger dexterity and muscle memory."); // Deux premières lignes initiales
+    const [isRunning, setIsRunning] = useState(false); // Jeu démarré ?
+    const [currentIndex, setCurrentIndex] = useState(0); // Position dans le texte cible
+    const [errorPerWord, setErrorPerWord] = useState(0); // Nombre erreur
+    const [wpm, setWpm] = useState(0); // WPM à afficher à la fin
+    const [initialTime,setInitialTime] = useState(10); // Temps initial pour le calcul du WPM
+    const inputRef = useRef(); // référence à la balise input
+    const timerRef = useRef(null); // référence pour le temps
+    const [isDisabled,setIsDisabled] = useState(false);
+    const [currentIsCorrect,setCurrentIsCorrect] = useState(true);
+    const [textToCompare,setTextToCompare] = useState(displayedText.split(' ').filter(word => word.length > 0));
+
+
+
+
+    const initializeGame = () => {
+      // Arrête le timer s'il est en cours
+        if (timerRef.current) {
+          clearInterval(timerRef.current);
+          timerRef.current = null;
+        }
+        // Initialise à 0 les etats
+        setTime(10);
+        setErrorPerWord(0);
+        inputRef.current.value = "";
+        setDisplayedText('The quick brown fox jumps over the lazy dog this pangram contains every letter of the alphabet and is commonly used for typing practice. It helps improve finger dexterity and muscle memory.');
+        setIsRunning(false);
+        setCurrentIndex(0);
+        setWpm(0);
+        setInitialTime(10);
+        setTextToCompare(displayedText.split(' ').filter(word => word.length > 0));
+        setIsDisabled(false);
+        setCurrentIsCorrect(true);
+    }
+    
+    const startTimer = () => {
+      if (!isRunning && timerRef.current === null) {
+          setIsRunning(true);
+          timerRef.current = setInterval(() => {
+              setTime((prev) => {
+                  const newTime = prev - 1;
+                  console.log("Time updated to:", newTime);
+                  if (newTime <= 0) {
+                    clearInterval(timerRef.current); 
+                    timerRef.current = null;
+                    stopTimer(newTime);
+                }                
+                  return newTime >= 0 ? newTime : 0; // Assure que time ne devient pas négatif
+              });
+          }, 1000);
+      }
+  };
+  
+    
+
+  const stopTimer = (finalTime) => {
+    if (timerRef.current) {
+        clearInterval(timerRef.current);
+        timerRef.current = null;
+    }
+    setIsRunning(false);
+  
+    // ⚡ On prend un snapshot du nombre de mots tapés
+    const wordsTyped = currentIndex + 1;
+  
+    console.log("Stopping timer, wordsTyped:", wordsTyped, "errorPerWord:", errorPerWord, "time:", finalTime);
+  
+    calculateWPM(finalTime, wordsTyped); // <-- on envoie directement le nombre de mots
+    setIsDisabled(true);
+    inputRef.current.value = "";
+  };
+  
+  
+
+  const calculateWPM = (finalTime, wordsTyped) => {
+    const errorRate = wordsTyped > 0 ? errorPerWord / wordsTyped : 0;
+    const effectiveWords = wordsTyped * (1 - errorRate);
+    const minutes = (initialTime - finalTime) / 60;
+  
+    let WPM = effectiveWords > 0 && minutes > 0 ? effectiveWords / minutes : 0;
+    const roundedWPM = Math.round(WPM);
+    setWpm(roundedWPM);
+  
+    console.log("Calculated WPM:", roundedWPM, 
+                "wordsTyped:", wordsTyped, 
+                "errorPerWord:", errorPerWord, 
+                "effectiveWords:", effectiveWords, 
+                "minutes:", minutes);
+  };
+  
+
+    const checkAccuracy = () => {}
+
+    const handleInputChange = (e) => {
+      if (isRunning == false){
+
+        if (inputRef.current.value == " "){
+          inputRef.current.value = "";
+        }
+
+        else{
+          startTimer();
+          //checkEachWord();
+        }
+      }
+
+      //currentIndex
+      //errorPerWord
+      //textToCompare
+      const actualInput = e.target.value;
+      const cuttedWord = textToCompare[currentIndex].slice(0,actualInput.length);
+      setCurrentIsCorrect(actualInput==cuttedWord);
+
+      // regarde si dernier caractère est vide
+      if (actualInput.length > 0 && actualInput[actualInput.length-1] == " "){
+        //si erreur, error +1
+        console.log(actualInput.replaceAll(" ", ""),cuttedWord);
+        if (!(actualInput.replaceAll(" ", "") == cuttedWord)){
+          setErrorPerWord((prev)=>prev+1)
+        }
+        //reintialise l'input
+        inputRef.current.value = "";
+        setCurrentIndex((prev)=>prev+1);
+        setCurrentIsCorrect(true);
+      }
+    }
+
+    useEffect(() => {
+      console.log("Index:", currentIndex, "Errors:", errorPerWord);
+    }, [currentIndex, errorPerWord]);
+
+    
+    const outputWord = () => (
+      <div className="flex flex-wrap">
+          {textToCompare.map((word, index) => (
+              <span
+                  key={index}
+                  className={`p-1 text-3xl ${(currentIsCorrect==false && currentIndex==index) ? 'bg-red-600' : currentIndex === index ? 'bg-gray-500 rounded' :  'text-inherit'}
+                  `}
+              >
+                  {word}
+              </span>
+          ))}
+      </div>
+  );
+
+    const resetGame = () => {
+        //console.log("Resetting game, currentIndex before:", currentIndex);
+        initializeGame();
+    }
+
+    const generateText = () => {}        
+
+  {/*
+    useEffect(() => {
+        console.log("currentIndex updated to:", currentIndex);
+    }, [currentIndex]);
+   */}
+
+    useEffect(()=> {
+        initializeGame();
+    }, [])
+
+  return (
+    <div>
+  <div className="w-full max-w-[2000px] h-auto min-h-[300px] p-4 sm:p-6 bg-gray-800 rounded-xl shadow-lg mt-4 sm:mt-6 border border-gray-600 overflow-auto flex flex-col mx-auto">
+        {/* Header */}
+        <div className="flex justify-between items-center mb-4 sm:mb-6">
+          {/* Stats */}
+          <div className="flex space-x-4 sm:space-x-6 text-center">
+            <div>
+              <p className="text-lg sm:text-xl font-bold">{wpm}</p>
+              <p className="text-xs sm:text-sm text-gray-400">WPM</p>
+            </div>
+            <div> 
+              <p className="text-lg sm:text-xl font-bold">100%</p>
+              <p className="text-xs sm:text-sm text-gray-400">Accuracy</p>
+            </div>
+            <div>
+              <p className="text-lg sm:text-xl font-bold">{time}</p>
+              <p className="text-xs sm:text-sm text-gray-400">Time</p>
+            </div>
+          </div>
+
+          {/* Settings button */}
+          <button className="p-1 sm:p-2 bg-gray-700 rounded-lg hover:bg-gray-600 border border-gray-600">
+            <Settings size={22} color="white" />
+          </button>
+        </div>
+
+        {/* Text box */}
+        <div className="p-4 sm:p-6 bg-gray-700 rounded-lg mb-4 sm:mb-6 border border-gray-500">
+          {outputWord()}
+          {/*<p className="text-base sm:text-lg leading-relaxed ">
+            {displayedText}
+          </p>*/}
+        </div>
+
+        {/* Input */}
+        <input
+          ref={inputRef}
+          onChange={handleInputChange}
+          type="text"
+          placeholder="Start typing here..."
+          className="w-full p-2 sm:p-3 rounded-lg bg-gray-700 border border-gray-500 focus:outline-none focus:ring-2 focus:ring-blue-500"
+          disabled={isDisabled ? "disabled" : ""}
+        />
+      </div>
+
+      <div className="flex items-center justify-center pt-4">
+        {/* Reset button */}
+
+        <button onClick={resetGame} className="px-6 py-3 text-xl hover:bg-gray-500 bg-gray-800 rounded-lg mb-6 border border-gray-600">
+          Reset
+        </button>
+      </div>
+
+      <div>
+        {outputWord}
+      </div>
+    </div>
+  );
+};
+
+export default TypingSpace;

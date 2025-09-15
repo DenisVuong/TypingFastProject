@@ -1,0 +1,9 @@
+@import "tailwindcss";
+
+.current {
+    background-color: yellow;
+    font-weight: bold;
+}
+.default {
+    color: inherit;
+}
