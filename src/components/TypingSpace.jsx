@@ -9,9 +9,13 @@ const TypingSpace = () => {
     const [currentIndex, setCurrentIndex] = useState(0); // Position dans le texte cible
     const [errorPerWord, setErrorPerWord] = useState(0); // Nombre erreur
     const [wpm, setWpm] = useState(0); // WPM à afficher à la fin
+    const [accuracy, setAccuracy] = useState(100);
     const [initialTime,setInitialTime] = useState(10); // Temps initial pour le calcul du WPM
     const inputRef = useRef(); // référence à la balise input
     const timerRef = useRef(null); // référence pour le temps
+    const hasStoppedRef = useRef(false); // évite les doubles arrêts
+    const currentIndexRef = useRef(0); // snapshot indépendant du cycle de rendu
+    const errorPerWordRef = useRef(0); // snapshot indépendant du cycle de rendu
     const [isDisabled,setIsDisabled] = useState(false);
     const [currentIsCorrect,setCurrentIsCorrect] = useState(true);
     const [textToCompare,setTextToCompare] = useState(displayedText.split(' ').filter(word => word.length > 0));
@@ -25,16 +29,21 @@ const TypingSpace = () => {
           clearInterval(timerRef.current);
           timerRef.current = null;
         }
+        hasStoppedRef.current = false;
         // Initialise à 0 les etats
         setTime(10);
         setErrorPerWord(0);
+        errorPerWordRef.current = 0;
         inputRef.current.value = "";
-        setDisplayedText('The quick brown fox jumps over the lazy dog this pangram contains every letter of the alphabet and is commonly used for typing practice. It helps improve finger dexterity and muscle memory.');
+        const baseText = 'The quick brown fox jumps over the lazy dog this pangram contains every letter of the alphabet and is commonly used for typing practice. It helps improve finger dexterity and muscle memory.';
+        setDisplayedText(baseText);
         setIsRunning(false);
         setCurrentIndex(0);
+        currentIndexRef.current = 0;
         setWpm(0);
+        setAccuracy(100);
         setInitialTime(10);
-        setTextToCompare(displayedText.split(' ').filter(word => word.length > 0));
+        setTextToCompare(baseText.split(' ').filter(word => word.length > 0));
         setIsDisabled(false);
         setCurrentIsCorrect(true);
     }
@@ -45,7 +54,6 @@ const TypingSpace = () => {
           timerRef.current = setInterval(() => {
               setTime((prev) => {
                   const newTime = prev - 1;
-                  console.log("Time updated to:", newTime);
                   if (newTime <= 0) {
                     clearInterval(timerRef.current); 
                     timerRef.current = null;
@@ -60,16 +68,20 @@ const TypingSpace = () => {
     
 
   const stopTimer = (finalTime) => {
+    if (hasStoppedRef.current) {
+      return;
+    }
+    hasStoppedRef.current = true;
     if (timerRef.current) {
         clearInterval(timerRef.current);
         timerRef.current = null;
     }
     setIsRunning(false);
   
-    // ⚡ On prend un snapshot du nombre de mots tapés
-    const wordsTyped = currentIndex + 1;
+    // ⚡ Utilise les refs pour éviter les closures obsolètes
+    const wordsTyped = currentIndexRef.current;
   
-    console.log("Stopping timer, wordsTyped:", wordsTyped, "errorPerWord:", errorPerWord, "time:", finalTime);
+    console.log("Stopping timer, wordsTyped:", wordsTyped, "errorPerWord:", errorPerWordRef.current, "time:", finalTime);
   
     calculateWPM(finalTime, wordsTyped); // <-- on envoie directement le nombre de mots
     setIsDisabled(true);
@@ -79,7 +91,8 @@ const TypingSpace = () => {
   
 
   const calculateWPM = (finalTime, wordsTyped) => {
-    const errorRate = wordsTyped > 0 ? errorPerWord / wordsTyped : 0;
+    const errors = errorPerWordRef.current;
+    const errorRate = wordsTyped > 0 ? errors / wordsTyped : 0;
     const effectiveWords = wordsTyped * (1 - errorRate);
     const minutes = (initialTime - finalTime) / 60;
   
@@ -89,13 +102,12 @@ const TypingSpace = () => {
   
     console.log("Calculated WPM:", roundedWPM, 
                 "wordsTyped:", wordsTyped, 
-                "errorPerWord:", errorPerWord, 
+                "errorPerWord:", errors, 
                 "effectiveWords:", effectiveWords, 
-                "minutes:", minutes);
+                "minutes:", minutes,
+              "index:", currentIndex);
   };
   
-
-    const checkAccuracy = () => {}
 
     const handleInputChange = (e) => {
       if (isRunning == false){
@@ -122,11 +134,23 @@ const TypingSpace = () => {
         //si erreur, error +1
         console.log(actualInput.replaceAll(" ", ""),cuttedWord);
         if (!(actualInput.replaceAll(" ", "") == cuttedWord)){
-          setErrorPerWord((prev)=>prev+1)
+          setErrorPerWord((prev)=>{
+            const next = prev + 1;
+            errorPerWordRef.current = next;
+            return next;
+          })
         }
         //reintialise l'input
         inputRef.current.value = "";
-        setCurrentIndex((prev)=>prev+1);
+        setCurrentIndex((prev)=>{
+          const next = prev + 1;
+          currentIndexRef.current = next;
+          const words = next;
+          const errors = errorPerWordRef.current;
+          const acc = words > 0 ? Math.max(0, Math.round(((words - errors) / words) * 100)) : 100;
+          setAccuracy(acc);
+          return next;
+        });
         setCurrentIsCorrect(true);
       }
     }
@@ -179,7 +203,7 @@ const TypingSpace = () => {
               <p className="text-xs sm:text-sm text-gray-400">WPM</p>
             </div>
             <div> 
-              <p className="text-lg sm:text-xl font-bold">100%</p>
+              <p className="text-lg sm:text-xl font-bold">{accuracy}%</p>
               <p className="text-xs sm:text-sm text-gray-400">Accuracy</p>
             </div>
             <div>
@@ -221,9 +245,7 @@ const TypingSpace = () => {
         </button>
       </div>
 
-      <div>
-        {outputWord}
-      </div>
+      {/* Duplicate output removed; already rendered above with outputWord() */}
     </div>
   );
 };
