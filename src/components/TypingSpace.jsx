@@ -146,7 +146,7 @@ const TypingSpace = () => {
           const next = prev + 1;
           currentIndexRef.current = next;
           const words = next;
-          const errors = errorPerWordRef.current;
+          const errors = errorPerWordRef.current; 
           const acc = words > 0 ? Math.max(0, Math.round(((words - errors) / words) * 100)) : 100;
           setAccuracy(acc);
           return next;
@@ -199,16 +199,16 @@ const TypingSpace = () => {
           {/* Stats */}
           <div className="flex space-x-4 sm:space-x-6 text-center">
             <div>
-              <p className="text-lg sm:text-xl font-bold">{wpm}</p>
-              <p className="text-xs sm:text-sm text-gray-400">WPM</p>
+              <p className="text-lg sm:text-3xl font-bold">{wpm}</p>
+              <p className="text-xs sm:text-xl text-gray-400">WPM</p>
             </div>
             <div> 
-              <p className="text-lg sm:text-xl font-bold">{accuracy}%</p>
-              <p className="text-xs sm:text-sm text-gray-400">Accuracy</p>
+              <p className="text-lg sm:text-3xl font-bold">{accuracy}%</p>
+              <p className="text-xs sm:text-xl text-gray-400">Accuracy</p>
             </div>
             <div>
-              <p className="text-lg sm:text-xl font-bold">{time}</p>
-              <p className="text-xs sm:text-sm text-gray-400">Time</p>
+              <p className="text-lg sm:text-3xl font-bold">{time}</p>
+              <p className="text-xs sm:text-xl text-gray-400">Time</p>
             </div>
           </div>
 
@@ -232,7 +232,7 @@ const TypingSpace = () => {
           onChange={handleInputChange}
           type="text"
           placeholder="Start typing here..."
-          className="w-full p-2 sm:p-3 rounded-lg bg-gray-700 border border-gray-500 focus:outline-none focus:ring-2 focus:ring-blue-500"
+          className="w-full p-2 sm:p-5 rounded-lg bg-gray-700 border border-gray-500 focus:outline-none focus:ring-2 focus:ring-blue-500 placeholder:text-xl"
           disabled={isDisabled ? "disabled" : ""}
         />
       </div>
