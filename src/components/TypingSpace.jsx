@@ -1,10 +1,13 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { Settings } from 'lucide-react';
+import frenchWords from '../language/french.json';
+
+
 
 const TypingSpace = () => {
 
     const [time, setTime] = useState(10); // Temps initial (60 secondes)
-    const [displayedText, setDisplayedText] = useState("The quick brown fox jumps over the lazy dog this pangram contains every letter of the alphabet and is commonly used for typing practice. It helps improve finger dexterity and muscle memory."); // Deux premières lignes initiales
+    const [displayedText, setDisplayedText] = useState("..."); // Deux premières lignes initiales
     const [isRunning, setIsRunning] = useState(false); // Jeu démarré ?
     const [currentIndex, setCurrentIndex] = useState(0); // Position dans le texte cible
     const [errorPerWord, setErrorPerWord] = useState(0); // Nombre erreur
@@ -35,7 +38,7 @@ const TypingSpace = () => {
         setErrorPerWord(0);
         errorPerWordRef.current = 0;
         inputRef.current.value = "";
-        const baseText = 'The quick brown fox jumps over the lazy dog this pangram contains every letter of the alphabet and is commonly used for typing practice. It helps improve finger dexterity and muscle memory.';
+        const baseText = generateText();
         setDisplayedText(baseText);
         setIsRunning(false);
         setCurrentIndex(0);
@@ -46,6 +49,7 @@ const TypingSpace = () => {
         setTextToCompare(baseText.split(' ').filter(word => word.length > 0));
         setIsDisabled(false);
         setCurrentIsCorrect(true);
+        generateText();
     }
     
     const startTimer = () => {
@@ -81,7 +85,6 @@ const TypingSpace = () => {
     // ⚡ Utilise les refs pour éviter les closures obsolètes
     const wordsTyped = currentIndexRef.current;
   
-    console.log("Stopping timer, wordsTyped:", wordsTyped, "errorPerWord:", errorPerWordRef.current, "time:", finalTime);
   
     calculateWPM(finalTime, wordsTyped); // <-- on envoie directement le nombre de mots
     setIsDisabled(true);
@@ -100,12 +103,6 @@ const TypingSpace = () => {
     const roundedWPM = Math.round(WPM);
     setWpm(roundedWPM);
   
-    console.log("Calculated WPM:", roundedWPM, 
-                "wordsTyped:", wordsTyped, 
-                "errorPerWord:", errors, 
-                "effectiveWords:", effectiveWords, 
-                "minutes:", minutes,
-              "index:", currentIndex);
   };
   
 
@@ -118,13 +115,9 @@ const TypingSpace = () => {
 
         else{
           startTimer();
-          //checkEachWord();
         }
       }
 
-      //currentIndex
-      //errorPerWord
-      //textToCompare
       const actualInput = e.target.value;
       const cuttedWord = textToCompare[currentIndex].slice(0,actualInput.length);
       setCurrentIsCorrect(actualInput==cuttedWord);
@@ -132,7 +125,6 @@ const TypingSpace = () => {
       // regarde si dernier caractère est vide
       if (actualInput.length > 0 && actualInput[actualInput.length-1] == " "){
         //si erreur, error +1
-        console.log(actualInput.replaceAll(" ", ""),cuttedWord);
         if (!(actualInput.replaceAll(" ", "") == cuttedWord)){
           setErrorPerWord((prev)=>{
             const next = prev + 1;
@@ -140,10 +132,12 @@ const TypingSpace = () => {
             return next;
           })
         }
+        
         //reintialise l'input
         inputRef.current.value = "";
         setCurrentIndex((prev)=>{
           const next = prev + 1;
+
           currentIndexRef.current = next;
           const words = next;
           const errors = errorPerWordRef.current; 
@@ -155,19 +149,19 @@ const TypingSpace = () => {
       }
     }
 
-    useEffect(() => {
-      console.log("Index:", currentIndex, "Errors:", errorPerWord);
-    }, [currentIndex, errorPerWord]);
-
     
     const outputWord = () => (
       <div className="flex flex-wrap">
           {textToCompare.map((word, index) => (
-              <span
-                  key={index}
-                  className={`p-1 text-3xl ${(currentIsCorrect==false && currentIndex==index) ? 'bg-red-600' : currentIndex === index ? 'bg-gray-500 rounded' :  'text-inherit'}
-                  `}
-              >
+                <span
+                    key={index}
+                    className={`p-1 text-3xl ${
+                      index < currentIndex ? 'text-[#1d2129]' : // Mots déjà tapés en couleur personnalisée
+                      (currentIsCorrect==false && currentIndex==index) ? 'bg-red-600' : // Mot actuel incorrect en rouge
+                      currentIndex === index ? 'bg-gray-500 rounded' : // Mot actuel en surbrillance
+                      'text-inherit' // Mots non tapés en couleur normale
+                    }`}
+                >
                   {word}
               </span>
           ))}
@@ -175,17 +169,25 @@ const TypingSpace = () => {
   );
 
     const resetGame = () => {
-        //console.log("Resetting game, currentIndex before:", currentIndex);
         initializeGame();
     }
 
-    const generateText = () => {}        
+    const generateText = () => {
+      let frWordsList = frenchWords.words;      
+      let listOfWords = [];
 
-  {/*
-    useEffect(() => {
-        console.log("currentIndex updated to:", currentIndex);
-    }, [currentIndex]);
-   */}
+      for (let i = 0; i < 50; i++) {
+        let word = frWordsList[Math.floor(Math.random() * frWordsList.length)];
+        listOfWords.push(word);
+      }
+
+
+      let randomSentence = listOfWords.join(" ");
+
+      return randomSentence;
+
+    }        
+
 
     useEffect(()=> {
         initializeGame();
@@ -198,18 +200,24 @@ const TypingSpace = () => {
         <div className="flex justify-between items-center mb-4 sm:mb-6">
           {/* Stats */}
           <div className="flex space-x-4 sm:space-x-6 text-center">
-            <div>
-              <p className="text-lg sm:text-3xl font-bold">{wpm}</p>
-              <p className="text-xs sm:text-xl text-gray-400">WPM</p>
-            </div>
-            <div> 
-              <p className="text-lg sm:text-3xl font-bold">{accuracy}%</p>
-              <p className="text-xs sm:text-xl text-gray-400">Accuracy</p>
-            </div>
-            <div>
+
+          <div>
               <p className="text-lg sm:text-3xl font-bold">{time}</p>
               <p className="text-xs sm:text-xl text-gray-400">Time</p>
+          </div>
+
+            <div className={`flex space-x-4 sm:space-x-6 transition-all duration-800 ease-in-out ${isDisabled ? 'opacity-100 scale-100' : 'opacity-0 scale-95 pointer-events-none'}`}>
+              <div>
+                <p className="text-lg sm:text-3xl font-bold">{wpm}</p>
+                <p className="text-xs sm:text-xl text-gray-400">WPM</p>
+              </div>
+              <div> 
+                <p className="text-lg sm:text-3xl font-bold">{accuracy}%</p>
+                <p className="text-xs sm:text-xl text-gray-400">Accuracy</p>
+              </div>
             </div>
+            
+            
           </div>
 
           {/* Settings button */}
@@ -232,7 +240,7 @@ const TypingSpace = () => {
           onChange={handleInputChange}
           type="text"
           placeholder="Start typing here..."
-          className="w-full p-2 sm:p-5 rounded-lg bg-gray-700 border border-gray-500 focus:outline-none focus:ring-2 focus:ring-blue-500 placeholder:text-xl"
+          className="w-full p-2 sm:p-5 rounded-lg bg-gray-700 border border-gray-500 focus:outline-none focus:ring-2 focus:ring-blue-500 placeholder:text-xl "
           disabled={isDisabled ? "disabled" : ""}
         />
       </div>
